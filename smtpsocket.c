@@ -20,8 +20,8 @@
 #include <ctype.h>
 #include <string.h>
 #if _MSC_VER
-#define strdup _strdup
 #define va_copy(dst,src) ((dst) = (src))
+#define strdup _strdup
 #endif
 
 ////////////////////////////////////////////////////////////////////////

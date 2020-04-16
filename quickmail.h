@@ -124,6 +124,12 @@ DLL_EXPORT_LIBQUICKMAIL quickmail quickmail_create (const char* from, const char
  */
 DLL_EXPORT_LIBQUICKMAIL void quickmail_destroy (quickmail mailobj);
 
+/*! \brief set the local hostname of a quickmail object (used in SMTP HELO/EHLO command)
+ * \param  hostname    local hostname (defaults to NULL = automatically detect)
+ * \param  from        sender e-mail address
+ */
+DLL_EXPORT_LIBQUICKMAIL void quickmail_set_hostname (quickmail mailobj, const char* hostname);
+
 /*! \brief set the sender (from) e-mail address of a quickmail object
  * \param  mailobj     quickmail object
  * \param  from        sender e-mail address

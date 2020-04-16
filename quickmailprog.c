@@ -28,7 +28,7 @@
                - specifying the MIME-type to use for the message body
                - multiple alternative bodies
     \section SYNOPSIS synopsis
-              quickmail -h server [-p port] [-u username] [-w password] -f email [-t email] [-c email] [-b email] [-s subject] [-m mimetype] [-d body] [-a file] [-v] [-?]
+              quickmail -h server [-p port] [-u username] [-w password] -f email [-t email] [-c email] [-b email] [-s subject] [-m mimetype] [-d body] [-a file] [-n hostname] [-v] [-?]
     \section OPTIONS options
               \verbatim
                -h server      hostname or IP address of SMTP server
@@ -43,6 +43,7 @@
                -m mimetype    MIME used for the body (must be specified before -d)
                -d body        body, if not specified will be read from standard input
                -a file        file to attach (multiple -a can be specified)
+               -n hostname    hostname to identify with in SMTP HELO/EHLO (default = detect)
                -v             verbose mode
                -?             show help
               \endverbatim
@@ -52,9 +53,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
 #include <sys/timeb.h>
-
+#include <string.h>
+#if defined(NOCURL) && defined(_WIN32)
+#include <winsock2.h>
+#endif
 #ifndef NOCURL
 #include <curl/curl.h>
 #endif
@@ -66,7 +69,7 @@ void show_help()
 #ifdef NOCURL
     "light"
 #endif
-    " {-h server | -o filename} [-p port] [-u username] [-w password] -f email [-t email] [-c email] [-b email] [-s subject] [-m mimetype] [-d body] [-a file] [-v]\n"
+    " {-h server | -o filename} [-p port] [-u username] [-w password] -f email [-t email] [-c email] [-b email] [-s subject] [-m mimetype] [-d body] [-a file] [-n hostname] [-v]\n"
     "Parameters:\n"
     "  -h server   \thostname or IP address of SMTP server\n"
     "  -o filename \tname of file to dump the mail content to (- for stdout)\n"
@@ -84,6 +87,7 @@ void show_help()
     "  -m mimetype \tMIME used for the next body (must be specified before -d)\n"
     "  -d body     \tbody, if not specified will be read from standard input\n"
     "  -a file     \tfile to attach (multiple -a can be specified)\n"
+    "  -n hostname \thostname to identify with in SMTP HELO/EHLO (default = detect)\n"
     "  -v          \tverbose mode\n"
     "  -?          \tshow help\n"
     "\n"
@@ -98,6 +102,15 @@ size_t email_info_attachment_read_stdin (void* handle, void* buf, size_t len)
 int main (int argc, char *argv[])
 {
   quickmail mailobj;
+
+#if defined(NOCURL) && defined(_WIN32)
+  //initialize winsock
+  static WSADATA wsaData;
+  int wsaerr = WSAStartup(MAKEWORD(1, 0), &wsaData);
+  if (wsaerr)
+    exit(1);
+  atexit((void(*)())WSACleanup);
+#endif
 
   //default values
   int status = 0;
@@ -284,6 +297,16 @@ int main (int argc, char *argv[])
               paramerror++;
             else
               quickmail_add_attachment_file(mailobj, param, NULL);
+            break;
+          case 'n' :
+            if (argv[i][2])
+              param = argv[i] + 2;
+            else if (i + 1 < argc && argv[i + 1])
+              param = argv[++i];
+            if (!param)
+              paramerror++;
+            else
+              quickmail_set_hostname(mailobj, (*param ? param : NULL));
             break;
           case 'v' :
             quickmail_set_debug_log(mailobj, stdout);
